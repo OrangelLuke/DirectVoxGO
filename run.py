@@ -576,6 +576,8 @@ def train(args, cfg, data_dict):
 
 if __name__=='__main__':
 
+    start_time = time.time()
+
     # load setup
     parser = config_parser()
     args = parser.parse_args()
@@ -713,4 +715,5 @@ if __name__=='__main__':
         imageio.mimwrite(os.path.join(testsavedir, 'video.depth.mp4'), utils.to8b(depth_vis), fps=30, quality=8)
 
     print('Done')
+    print("Time: ", (time.time() - start_time))
 
