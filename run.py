@@ -15,6 +15,11 @@ from lib.load_data import load_data
 
 from torch_efficient_distloss import flatten_eff_distloss
 
+psnr_value = None
+ssim_value = None
+lpips_vgg_value = None
+lpips_alex_value = None
+
 
 def config_parser():
     '''Define command line arguments
@@ -63,6 +68,11 @@ def render_viewpoints(model, render_poses, HW, Ks, ndc, render_kwargs,
                       gt_imgs=None, savedir=None, dump_images=False,
                       render_factor=0, render_video_flipy=False, render_video_rot90=0,
                       eval_ssim=False, eval_lpips_alex=False, eval_lpips_vgg=False):
+    global psnr_value
+    global ssim_value
+    global lpips_vgg_value
+    global lpips_alex_value
+
     '''Render images for the given viewpoints; run evaluation if gt given.
     '''
     assert len(render_poses) == len(HW) and len(HW) == len(Ks)
@@ -122,10 +132,18 @@ def render_viewpoints(model, render_poses, HW, Ks, ndc, render_kwargs,
                 lpips_vgg.append(utils.rgb_lpips(rgb, gt_imgs[i], net_name='vgg', device=c2w.device))
 
     if len(psnrs):
+
         print('Testing psnr', np.mean(psnrs), '(avg)')
-        if eval_ssim: print('Testing ssim', np.mean(ssims), '(avg)')
-        if eval_lpips_vgg: print('Testing lpips (vgg)', np.mean(lpips_vgg), '(avg)')
-        if eval_lpips_alex: print('Testing lpips (alex)', np.mean(lpips_alex), '(avg)')
+        psnr_value = np.mean(psnrs)
+        if eval_ssim:
+            print('Testing ssim', np.mean(ssims), '(avg)')
+            ssim_value = np.mean(ssims)
+        if eval_lpips_vgg:
+            print('Testing lpips (vgg)', np.mean(lpips_vgg), '(avg)')
+            lpips_vgg_value = np.mean(lpips_vgg)
+        if eval_lpips_alex:
+            print('Testing lpips (alex)', np.mean(lpips_alex), '(avg)')
+            lpips_alex_value = np.mean(lpips_alex)
 
     if render_video_flipy:
         for i in range(len(rgbs)):
