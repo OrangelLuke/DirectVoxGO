@@ -576,8 +576,6 @@ def train(args, cfg, data_dict):
 
 if __name__=='__main__':
 
-    start_time = time.time()
-
     # load setup
     parser = config_parser()
     args = parser.parse_args()
@@ -594,126 +592,131 @@ if __name__=='__main__':
     # load images / poses / camera settings / data split
     data_dict = load_everything(args=args, cfg=cfg)
 
-    # export scene bbox and camera poses in 3d for debugging and visualization
-    if args.export_bbox_and_cams_only:
-        print('Export bbox and cameras...')
-        xyz_min, xyz_max = compute_bbox_by_cam_frustrm(args=args, cfg=cfg, **data_dict)
-        poses, HW, Ks, i_train = data_dict['poses'], data_dict['HW'], data_dict['Ks'], data_dict['i_train']
-        near, far = data_dict['near'], data_dict['far']
-        if data_dict['near_clip'] is not None:
-            near = data_dict['near_clip']
-        cam_lst = []
-        for c2w, (H, W), K in zip(poses[i_train], HW[i_train], Ks[i_train]):
-            rays_o, rays_d, viewdirs = dvgo.get_rays_of_a_view(
-                    H, W, K, c2w, cfg.data.ndc, inverse_y=cfg.data.inverse_y,
-                    flip_x=cfg.data.flip_x, flip_y=cfg.data.flip_y,)
-            cam_o = rays_o[0,0].cpu().numpy()
-            cam_d = rays_d[[0,0,-1,-1],[0,-1,0,-1]].cpu().numpy()
-            cam_lst.append(np.array([cam_o, *(cam_o+cam_d*max(near, far*0.05))]))
-        np.savez_compressed(args.export_bbox_and_cams_only,
-            xyz_min=xyz_min.cpu().numpy(), xyz_max=xyz_max.cpu().numpy(),
-            cam_lst=np.array(cam_lst))
-        print('done')
-        sys.exit()
+    def execute_everything():
 
-    if args.export_coarse_only:
-        print('Export coarse visualization...')
-        with torch.no_grad():
-            ckpt_path = os.path.join(cfg.basedir, cfg.expname, 'coarse_last.tar')
-            model = utils.load_model(dvgo.DirectVoxGO, ckpt_path).to(device)
-            alpha = model.activate_density(model.density.get_dense_grid()).squeeze().cpu().numpy()
-            rgb = torch.sigmoid(model.k0.get_dense_grid()).squeeze().permute(1,2,3,0).cpu().numpy()
-        np.savez_compressed(args.export_coarse_only, alpha=alpha, rgb=rgb)
-        print('done')
-        sys.exit()
+        # export scene bbox and camera poses in 3d for debugging and visualization
+        if args.export_bbox_and_cams_only:
+            print('Export bbox and cameras...')
+            xyz_min, xyz_max = compute_bbox_by_cam_frustrm(args=args, cfg=cfg, **data_dict)
+            poses, HW, Ks, i_train = data_dict['poses'], data_dict['HW'], data_dict['Ks'], data_dict['i_train']
+            near, far = data_dict['near'], data_dict['far']
+            if data_dict['near_clip'] is not None:
+                near = data_dict['near_clip']
+            cam_lst = []
+            for c2w, (H, W), K in zip(poses[i_train], HW[i_train], Ks[i_train]):
+                rays_o, rays_d, viewdirs = dvgo.get_rays_of_a_view(
+                        H, W, K, c2w, cfg.data.ndc, inverse_y=cfg.data.inverse_y,
+                        flip_x=cfg.data.flip_x, flip_y=cfg.data.flip_y,)
+                cam_o = rays_o[0,0].cpu().numpy()
+                cam_d = rays_d[[0,0,-1,-1],[0,-1,0,-1]].cpu().numpy()
+                cam_lst.append(np.array([cam_o, *(cam_o+cam_d*max(near, far*0.05))]))
+            np.savez_compressed(args.export_bbox_and_cams_only,
+                xyz_min=xyz_min.cpu().numpy(), xyz_max=xyz_max.cpu().numpy(),
+                cam_lst=np.array(cam_lst))
+            print('done')
+            sys.exit()
 
-    # train
-    if not args.render_only:
-        train(args, cfg, data_dict)
+        if args.export_coarse_only:
+            print('Export coarse visualization...')
+            with torch.no_grad():
+                ckpt_path = os.path.join(cfg.basedir, cfg.expname, 'coarse_last.tar')
+                model = utils.load_model(dvgo.DirectVoxGO, ckpt_path).to(device)
+                alpha = model.activate_density(model.density.get_dense_grid()).squeeze().cpu().numpy()
+                rgb = torch.sigmoid(model.k0.get_dense_grid()).squeeze().permute(1,2,3,0).cpu().numpy()
+            np.savez_compressed(args.export_coarse_only, alpha=alpha, rgb=rgb)
+            print('done')
+            sys.exit()
 
-    # load model for rendring
-    if args.render_test or args.render_train or args.render_video:
-        if args.ft_path:
-            ckpt_path = args.ft_path
-        else:
-            ckpt_path = os.path.join(cfg.basedir, cfg.expname, 'fine_last.tar')
-        ckpt_name = ckpt_path.split('/')[-1][:-4]
-        if cfg.data.ndc:
-            model_class = dmpigo.DirectMPIGO
-        elif cfg.data.unbounded_inward:
-            model_class = dcvgo.DirectContractedVoxGO
-        else:
-            model_class = dvgo.DirectVoxGO
-        model = utils.load_model(model_class, ckpt_path).to(device)
-        stepsize = cfg.fine_model_and_render.stepsize
-        render_viewpoints_kwargs = {
-            'model': model,
-            'ndc': cfg.data.ndc,
-            'render_kwargs': {
-                'near': data_dict['near'],
-                'far': data_dict['far'],
-                'bg': 1 if cfg.data.white_bkgd else 0,
-                'stepsize': stepsize,
-                'inverse_y': cfg.data.inverse_y,
-                'flip_x': cfg.data.flip_x,
-                'flip_y': cfg.data.flip_y,
-                'render_depth': True,
-            },
-        }
+        # train
+        if not args.render_only:
+            train(args, cfg, data_dict)
 
-    # render trainset and eval
-    if args.render_train:
-        testsavedir = os.path.join(cfg.basedir, cfg.expname, f'render_train_{ckpt_name}')
-        os.makedirs(testsavedir, exist_ok=True)
-        print('All results are dumped into', testsavedir)
-        rgbs, depths, bgmaps = render_viewpoints(
-                render_poses=data_dict['poses'][data_dict['i_train']],
-                HW=data_dict['HW'][data_dict['i_train']],
-                Ks=data_dict['Ks'][data_dict['i_train']],
-                gt_imgs=[data_dict['images'][i].cpu().numpy() for i in data_dict['i_train']],
-                savedir=testsavedir, dump_images=args.dump_images,
-                eval_ssim=args.eval_ssim, eval_lpips_alex=args.eval_lpips_alex, eval_lpips_vgg=args.eval_lpips_vgg,
-                **render_viewpoints_kwargs)
-        imageio.mimwrite(os.path.join(testsavedir, 'video.rgb.mp4'), utils.to8b(rgbs), fps=30, quality=8)
-        imageio.mimwrite(os.path.join(testsavedir, 'video.depth.mp4'), utils.to8b(1 - depths / np.max(depths)), fps=30, quality=8)
+        # load model for rendering
+        if args.render_test or args.render_train or args.render_video:
+            if args.ft_path:
+                ckpt_path = args.ft_path
+            else:
+                ckpt_path = os.path.join(cfg.basedir, cfg.expname, 'fine_last.tar')
+            ckpt_name = ckpt_path.split('/')[-1][:-4]
+            if cfg.data.ndc:
+                model_class = dmpigo.DirectMPIGO
+            elif cfg.data.unbounded_inward:
+                model_class = dcvgo.DirectContractedVoxGO
+            else:
+                model_class = dvgo.DirectVoxGO
+            model = utils.load_model(model_class, ckpt_path).to(device)
+            stepsize = cfg.fine_model_and_render.stepsize
+            render_viewpoints_kwargs = {
+                'model': model,
+                'ndc': cfg.data.ndc,
+                'render_kwargs': {
+                    'near': data_dict['near'],
+                    'far': data_dict['far'],
+                    'bg': 1 if cfg.data.white_bkgd else 0,
+                    'stepsize': stepsize,
+                    'inverse_y': cfg.data.inverse_y,
+                    'flip_x': cfg.data.flip_x,
+                    'flip_y': cfg.data.flip_y,
+                    'render_depth': True,
+                },
+            }
 
-    # render testset and eval
-    if args.render_test:
-        testsavedir = os.path.join(cfg.basedir, cfg.expname, f'render_test_{ckpt_name}')
-        os.makedirs(testsavedir, exist_ok=True)
-        print('All results are dumped into', testsavedir)
-        rgbs, depths, bgmaps = render_viewpoints(
-                render_poses=data_dict['poses'][data_dict['i_test']],
-                HW=data_dict['HW'][data_dict['i_test']],
-                Ks=data_dict['Ks'][data_dict['i_test']],
-                gt_imgs=[data_dict['images'][i].cpu().numpy() for i in data_dict['i_test']],
-                savedir=testsavedir, dump_images=args.dump_images,
-                eval_ssim=args.eval_ssim, eval_lpips_alex=args.eval_lpips_alex, eval_lpips_vgg=args.eval_lpips_vgg,
-                **render_viewpoints_kwargs)
-        imageio.mimwrite(os.path.join(testsavedir, 'video.rgb.mp4'), utils.to8b(rgbs), fps=30, quality=8)
-        imageio.mimwrite(os.path.join(testsavedir, 'video.depth.mp4'), utils.to8b(1 - depths / np.max(depths)), fps=30, quality=8)
+        # render trainset and eval
+        if args.render_train:
+            testsavedir = os.path.join(cfg.basedir, cfg.expname, f'render_train_{ckpt_name}')
+            os.makedirs(testsavedir, exist_ok=True)
+            print('All results are dumped into', testsavedir)
+            rgbs, depths, bgmaps = render_viewpoints(
+                    render_poses=data_dict['poses'][data_dict['i_train']],
+                    HW=data_dict['HW'][data_dict['i_train']],
+                    Ks=data_dict['Ks'][data_dict['i_train']],
+                    gt_imgs=[data_dict['images'][i].cpu().numpy() for i in data_dict['i_train']],
+                    savedir=testsavedir, dump_images=args.dump_images,
+                    eval_ssim=args.eval_ssim, eval_lpips_alex=args.eval_lpips_alex, eval_lpips_vgg=args.eval_lpips_vgg,
+                    **render_viewpoints_kwargs)
+            imageio.mimwrite(os.path.join(testsavedir, 'video.rgb.mp4'), utils.to8b(rgbs), fps=30, quality=8)
+            imageio.mimwrite(os.path.join(testsavedir, 'video.depth.mp4'), utils.to8b(1 - depths / np.max(depths)), fps=30, quality=8)
 
-    # render video
-    if args.render_video:
-        testsavedir = os.path.join(cfg.basedir, cfg.expname, f'render_video_{ckpt_name}')
-        os.makedirs(testsavedir, exist_ok=True)
-        print('All results are dumped into', testsavedir)
-        rgbs, depths, bgmaps = render_viewpoints(
-                render_poses=data_dict['render_poses'],
-                HW=data_dict['HW'][data_dict['i_test']][[0]].repeat(len(data_dict['render_poses']), 0),
-                Ks=data_dict['Ks'][data_dict['i_test']][[0]].repeat(len(data_dict['render_poses']), 0),
-                render_factor=args.render_video_factor,
-                render_video_flipy=args.render_video_flipy,
-                render_video_rot90=args.render_video_rot90,
-                savedir=testsavedir, dump_images=args.dump_images,
-                **render_viewpoints_kwargs)
-        imageio.mimwrite(os.path.join(testsavedir, 'video.rgb.mp4'), utils.to8b(rgbs), fps=30, quality=8)
-        import matplotlib.pyplot as plt
-        depths_vis = depths * (1-bgmaps) + bgmaps
-        dmin, dmax = np.percentile(depths_vis[bgmaps < 0.1], q=[5, 95])
-        depth_vis = plt.get_cmap('rainbow')(1 - np.clip((depths_vis - dmin) / (dmax - dmin), 0, 1)).squeeze()[..., :3]
-        imageio.mimwrite(os.path.join(testsavedir, 'video.depth.mp4'), utils.to8b(depth_vis), fps=30, quality=8)
+        # render testset and eval
+        if args.render_test:
+            testsavedir = os.path.join(cfg.basedir, cfg.expname, f'render_test_{ckpt_name}')
+            os.makedirs(testsavedir, exist_ok=True)
+            print('All results are dumped into', testsavedir)
+            rgbs, depths, bgmaps = render_viewpoints(
+                    render_poses=data_dict['poses'][data_dict['i_test']],
+                    HW=data_dict['HW'][data_dict['i_test']],
+                    Ks=data_dict['Ks'][data_dict['i_test']],
+                    gt_imgs=[data_dict['images'][i].cpu().numpy() for i in data_dict['i_test']],
+                    savedir=testsavedir, dump_images=args.dump_images,
+                    eval_ssim=args.eval_ssim, eval_lpips_alex=args.eval_lpips_alex, eval_lpips_vgg=args.eval_lpips_vgg,
+                    **render_viewpoints_kwargs)
+            imageio.mimwrite(os.path.join(testsavedir, 'video.rgb.mp4'), utils.to8b(rgbs), fps=30, quality=8)
+            imageio.mimwrite(os.path.join(testsavedir, 'video.depth.mp4'), utils.to8b(1 - depths / np.max(depths)), fps=30, quality=8)
 
-    print('Done')
+        # render video
+        if args.render_video:
+            testsavedir = os.path.join(cfg.basedir, cfg.expname, f'render_video_{ckpt_name}')
+            os.makedirs(testsavedir, exist_ok=True)
+            print('All results are dumped into', testsavedir)
+            rgbs, depths, bgmaps = render_viewpoints(
+                    render_poses=data_dict['render_poses'],
+                    HW=data_dict['HW'][data_dict['i_test']][[0]].repeat(len(data_dict['render_poses']), 0),
+                    Ks=data_dict['Ks'][data_dict['i_test']][[0]].repeat(len(data_dict['render_poses']), 0),
+                    render_factor=args.render_video_factor,
+                    render_video_flipy=args.render_video_flipy,
+                    render_video_rot90=args.render_video_rot90,
+                    savedir=testsavedir, dump_images=args.dump_images,
+                    **render_viewpoints_kwargs)
+            imageio.mimwrite(os.path.join(testsavedir, 'video.rgb.mp4'), utils.to8b(rgbs), fps=30, quality=8)
+            import matplotlib.pyplot as plt
+            depths_vis = depths * (1-bgmaps) + bgmaps
+            dmin, dmax = np.percentile(depths_vis[bgmaps < 0.1], q=[5, 95])
+            depth_vis = plt.get_cmap('rainbow')(1 - np.clip((depths_vis - dmin) / (dmax - dmin), 0, 1)).squeeze()[..., :3]
+            imageio.mimwrite(os.path.join(testsavedir, 'video.depth.mp4'), utils.to8b(depth_vis), fps=30, quality=8)
+
+        print('Done')
+
+    start_time = time.time()
+    execute_everything()
     print("Time: ", (time.time() - start_time))
 
