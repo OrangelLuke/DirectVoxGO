@@ -610,6 +610,9 @@ if __name__=='__main__':
     # load images / poses / camera settings / data split
     data_dict = load_everything(args=args, cfg=cfg)
 
+    values = [80**3, 160**3, 210**3]
+    print("num_voxels: ",cfg.fine_model_and_render["num_voxels"])
+
     def execute_everything():
 
         # export scene bbox and camera poses in 3d for debugging and visualization
@@ -734,7 +737,29 @@ if __name__=='__main__':
 
         print('Done')
 
-    start_time = time.time()
-    execute_everything()
-    print("Time: ", (time.time() - start_time))
+
+    f = open("measurements.txt", "a")
+
+    for val in values:
+        cfg.fine_model_and_render["num_voxels"] = val
+        cfg.fine_model_and_render["num_voxels_base"] = val
+        print("## VALOR: ", cfg.fine_model_and_render["num_voxels"], " ##")
+        f.write("## VALOR: {} ##".format(cfg.fine_model_and_render["num_voxels"]))
+        try:
+            start_time = time.time()
+            execute_everything()
+        except:
+            print("EXECUTION FAILED. We try again")
+            f.write("\nEXECUTION FAILED. We try again")
+            start_time = time.time()
+            execute_everything()
+        f.write("\nTime: {}".format(time.time() - start_time))
+        f.write("\nPSNR: {}".format(psnr_value))
+        f.write("\nSSIM: {}".format(ssim_value))
+        f.write("\nLPIPS: {}".format(lpips_vgg_value))
+        f.write("\n\n")
+        print()
+
+    f.close()
+    print("All exectutions done")
 
