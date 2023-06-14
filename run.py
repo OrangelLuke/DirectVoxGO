@@ -761,7 +761,7 @@ if __name__=='__main__':
         print()
         i += 1
 
-    f.write("All exectutions done")
+    f.write("All executions done")
     f.close()
-    print("All exectutions done")
+    print("All executions done")
 
