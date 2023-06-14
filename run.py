@@ -760,6 +760,7 @@ if __name__=='__main__':
         f.write("\n\n")
         print()
 
+    f.write("All exectutions done")
     f.close()
     print("All exectutions done")
 
