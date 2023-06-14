@@ -611,7 +611,7 @@ if __name__=='__main__':
     data_dict = load_everything(args=args, cfg=cfg)
 
     values = [80**3, 160**3]
-    print("num_voxels: ",cfg.coarse_model_and_render["num_voxels"])
+    print("num_voxels: ", cfg.fine_model_and_render["num_voxels"])
 
     def execute_everything():
 
@@ -742,10 +742,10 @@ if __name__=='__main__':
 
     i = 0
     while i < len(values):
-        cfg.coarse_model_and_render["num_voxels"] = val
-        cfg.coarse_model_and_render["num_voxels_base"] = val
-        print("## VALOR: ", cfg.coarse_model_and_render["num_voxels"], " ##")
-        f.write("## VALOR: {} ##".format(cfg.coarse_model_and_render["num_voxels"]))
+        cfg.fine_model_and_render["num_voxels"] = values[i]
+        cfg.fine_model_and_render["num_voxels_base"] = values[i]
+        print("## VALOR: ", cfg.fine_model_and_render["num_voxels"], " ##")
+        f.write("## VALOR: {} ##".format(cfg.fine_model_and_render["num_voxels"]))
         try:
             start_time = time.time()
             execute_everything()
