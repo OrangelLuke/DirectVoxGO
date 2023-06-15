@@ -756,7 +756,9 @@ if __name__=='__main__':
             print("EXECUTION FAILED. We try again")
             f.write("\nEXECUTION FAILED. We try again\n")
             if retry_count < 3: retry_count +=1
-            else: i += 1
+            else:
+                i += 1
+                retry_count = 0
             continue
         f.write("\nTime: {}".format(time.time() - start_time))
         f.write("\nPSNR: {}".format(psnr_value))
