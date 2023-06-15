@@ -765,6 +765,7 @@ if __name__=='__main__':
         f.write("\n\n")
         print()
         i += 1
+        retry_count = 0
 
     f.write("All executions done")
     f.close()
