@@ -741,17 +741,22 @@ if __name__=='__main__':
     f = open("measurements.txt", "a")
 
     i = 0
+    retry_count = 0
     while i < len(values):
         cfg.fine_model_and_render["num_voxels"] = values[i]
         cfg.fine_model_and_render["num_voxels_base"] = values[i]
         print("## VALOR: ", cfg.fine_model_and_render["num_voxels"], " ##")
         f.write("## VALOR: {} ##".format(cfg.fine_model_and_render["num_voxels"]))
         try:
+            print("Trying to execute")
+            f.write("Trying to execute\n")
             start_time = time.time()
             execute_everything()
         except:
             print("EXECUTION FAILED. We try again")
-            f.write("\nEXECUTION FAILED. We try again")
+            f.write("\nEXECUTION FAILED. We try again\n")
+            if retry_count < 3: retry_count +=1
+            else: i += 1
             continue
         f.write("\nTime: {}".format(time.time() - start_time))
         f.write("\nPSNR: {}".format(psnr_value))
