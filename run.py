@@ -747,7 +747,7 @@ if __name__ == '__main__':
     print("num_voxels: ", cfg.fine_model_and_render["num_voxels"])
 
     f = open("measurements.txt", "a")
-    parent_dir = "C:/Users/Ángel/PycharmProjects/DirectVoxGO/logRecord"
+    parent_dir = "logRecord"
 
     i = 0
     retry_count = 0
@@ -763,9 +763,11 @@ if __name__ == '__main__':
             f.write("Trying to execute\n")
             start_time = time.time()
             execute_everything(args, cfg, device, data_dict)
-            directory = "num_voxels "+str(cfg.coarse_model_and_render["num_voxels"])
+            directory = "num_voxels"+str(cfg.coarse_model_and_render["num_voxels"])
             path = os.path.join(parent_dir, directory)
+            print("El path para el directorio es: ", path)
             os.mkdir(path)
+            print("Directorio creado: ", path)
             os.renames("logs", "logRecord/"+directory+"/logs")
         except Exception as excp:
             print(excp)
