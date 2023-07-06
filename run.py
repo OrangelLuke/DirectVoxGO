@@ -5,6 +5,7 @@ from tqdm import tqdm, trange
 import mmcv
 import imageio
 import numpy as np
+import psutil
 
 import torch
 import torch.nn as nn
@@ -738,13 +739,24 @@ def load_results(ruta, cfg, results):
         l = []
 
     execution = {}
-    execution["config"] = cfg
+    execution["config"] = {}
+    execution["config"]["coarse_num_voxels"] = cfg.coarse_model_and_render["num_voxels"]
+    execution["config"]["coarse_num_voxels_base"] = cfg.coarse_model_and_render["num_voxels_base"]
+    execution["config"]["fine_num_voxels"] = cfg.coarse_model_and_render["num_voxels"]
+    execution["config"]["fine_num_voxels_base"] = cfg.coarse_model_and_render["num_voxels_base"]
     execution["results"] = results
 
     l.append(execution)
+    print(l)
 
-    with open(ruta, 'w') as archivo:
-        json.dump(l, archivo)
+    with open(ruta, 'w') as f:
+        json.dump(l, f, indent=2)
+
+
+def measure_memory_usage():
+    process = psutil.Process()
+    memory_info = process.memory_info()
+    return memory_info.rss  # Resident Set Size (memory usage in bytes)
 
 if __name__ == '__main__':
 
@@ -775,6 +787,8 @@ if __name__ == '__main__':
     while i < len(values):
         cfg.coarse_model_and_render["num_voxels"] = values[i]
         cfg.coarse_model_and_render["num_voxels_base"] = values[i]
+        cfg.fine_model_and_render["num_voxels"] = values[i]
+        cfg.fine_model_and_render["num_voxels_base"] = values[i]
         print("## VALOR: ", cfg.coarse_model_and_render["num_voxels"], " ##")
         f.write("## VALOR: {} ##\n".format(cfg.coarse_model_and_render["num_voxels"]))
         # load images / poses / camera settings / data split
@@ -783,7 +797,9 @@ if __name__ == '__main__':
             print("Trying to execute")
             f.write("Trying to execute\n")
             start_time = time.time()
+            memory_before = measure_memory_usage()
             execute_everything(args, cfg, device, data_dict)
+            memory_after = measure_memory_usage()
             directory = "num_voxels"+str(cfg.coarse_model_and_render["num_voxels"])
             path = os.path.join(parent_dir, directory)
             print("El path para el directorio es: ", path)
@@ -802,6 +818,7 @@ if __name__ == '__main__':
             continue
         results = {}
         results["time"] = time.time() - start_time
+        results["memory"] = memory_after - memory_before
         results["psnr"] = psnr_value
         results["ssim"] = ssim_value
         results["lpips"] = lpips_vgg_value
