@@ -725,6 +725,26 @@ def execute_everything(args, cfg, device, data_dict):
 
     print('Done')
 
+def load_results(ruta, cfg, results):
+    if os.path.exists(ruta):  # We check if the file exits
+        with open(ruta) as archivo:
+            contenido = json.load(archivo)  # Load JSON content into a variable
+            if isinstance(contenido, list):  # Check if content is a list
+                l = contenido
+            else:
+                print("The content is not a valid list.")
+    else:
+        print("JSON archive does not exist")
+        l = []
+
+    execution = {}
+    execution["config"] = cfg
+    execution["results"] = results
+
+    l.append(execution)
+
+    with open(ruta, 'w') as archivo:
+        json.dump(l, archivo)
 
 if __name__ == '__main__':
 
@@ -742,12 +762,13 @@ if __name__ == '__main__':
     seed_everything()
 
     # values = [10**3, 160**3]
-    values = [1000, 1024000]
+    values = [100, 1024000]
     # values = [10, 50]
     print("num_voxels: ", cfg.fine_model_and_render["num_voxels"])
 
     f = open("measurements.txt", "a")
     parent_dir = "logRecord"
+    ruta = "results.json"
 
     i = 0
     retry_count = 0
@@ -779,6 +800,13 @@ if __name__ == '__main__':
                 i += 1
                 retry_count = 0
             continue
+        results = {}
+        results["time"] = time.time() - start_time
+        results["psnr"] = psnr_value
+        results["ssim"] = ssim_value
+        results["lpips"] = lpips_vgg_value
+        load_results(ruta, cfg, results)
+
         f.write("\nTime: {}".format(time.time() - start_time))
         f.write("\nPSNR: {}".format(psnr_value))
         f.write("\nSSIM: {}".format(ssim_value))
