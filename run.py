@@ -795,6 +795,9 @@ if __name__ == '__main__':
             print("JSON archive does not exist")
             l = []
         value = check_value_is_done(l, values)
+        if value is None:
+            print("All values have been used\n")
+            break
         cfg.coarse_model_and_render["num_voxels"] = value
         cfg.coarse_model_and_render["num_voxels_base"] = value
         cfg.fine_model_and_render["num_voxels"] = value
