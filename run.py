@@ -6,6 +6,7 @@ import mmcv
 import imageio
 import numpy as np
 import psutil
+import gc
 
 import torch
 import torch.nn as nn
@@ -726,18 +727,7 @@ def execute_everything(args, cfg, device, data_dict):
 
     print('Done')
 
-def load_results(ruta, cfg, results):
-    if os.path.exists(ruta):  # We check if the file exits
-        with open(ruta) as archivo:
-            contenido = json.load(archivo)  # Load JSON content into a variable
-            if isinstance(contenido, list):  # Check if content is a list
-                l = contenido
-            else:
-                print("The content is not a valid list.")
-    else:
-        print("JSON archive does not exist")
-        l = []
-
+def load_results(l, ruta, cfg, results):
     execution = {}
     execution["config"] = {}
     execution["config"]["coarse_num_voxels"] = cfg.coarse_model_and_render["num_voxels"]
@@ -758,6 +748,14 @@ def measure_memory_usage():
     memory_info = process.memory_info()
     return memory_info.rss  # Resident Set Size (memory usage in bytes)
 
+def check_value_is_done(l, values):
+    valuesDone = []
+    for val in l:
+        valuesDone.append(val["config"]["coarse_num_voxels"])
+    for val in values:
+        if val not in valuesDone:
+            return val
+
 if __name__ == '__main__':
 
     # load setup
@@ -773,6 +771,18 @@ if __name__ == '__main__':
         device = torch.device('cpu')
     seed_everything()
 
+    ruta = "results.json"
+    if os.path.exists(ruta):  # We check if the file exits
+        with open(ruta) as archivo:
+            contenido = json.load(archivo)  # Load JSON content into a variable
+            if isinstance(contenido, list):  # Check if content is a list
+                l = contenido
+            else:
+                print("The content is not a valid list.")
+    else:
+        print("JSON archive does not exist")
+        l = []
+
     # values = [10**3, 160**3]
     values = [100, 1024000]
     # values = [10, 50]
@@ -780,15 +790,15 @@ if __name__ == '__main__':
 
     f = open("measurements.txt", "a")
     parent_dir = "logRecord"
-    ruta = "results.json"
 
     i = 0
     retry_count = 0
     while i < len(values):
-        cfg.coarse_model_and_render["num_voxels"] = values[i]
-        cfg.coarse_model_and_render["num_voxels_base"] = values[i]
-        cfg.fine_model_and_render["num_voxels"] = values[i]
-        cfg.fine_model_and_render["num_voxels_base"] = values[i]
+        value = check_value_is_done(l, values)
+        cfg.coarse_model_and_render["num_voxels"] = value
+        cfg.coarse_model_and_render["num_voxels_base"] = value
+        cfg.fine_model_and_render["num_voxels"] = value
+        cfg.fine_model_and_render["num_voxels_base"] = value
         print("## VALOR: ", cfg.coarse_model_and_render["num_voxels"], " ##")
         f.write("## VALOR: {} ##\n".format(cfg.coarse_model_and_render["num_voxels"]))
         # load images / poses / camera settings / data split
@@ -796,6 +806,7 @@ if __name__ == '__main__':
         try:
             print("Trying to execute")
             f.write("Trying to execute\n")
+            gc.collect()
             start_time = time.time()
             memory_before = measure_memory_usage()
             execute_everything(args, cfg, device, data_dict)
@@ -832,6 +843,7 @@ if __name__ == '__main__':
         print()
         i += 1
         retry_count = 0
+        gc.collect()
 
     f.write("All executions done")
     f.close()
