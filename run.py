@@ -772,16 +772,6 @@ if __name__ == '__main__':
     seed_everything()
 
     ruta = "results.json"
-    if os.path.exists(ruta):  # We check if the file exits
-        with open(ruta) as archivo:
-            contenido = json.load(archivo)  # Load JSON content into a variable
-            if isinstance(contenido, list):  # Check if content is a list
-                l = contenido
-            else:
-                print("The content is not a valid list.")
-    else:
-        print("JSON archive does not exist")
-        l = []
 
     # values = [10**3, 160**3]
     values = [100, 1024000]
@@ -793,7 +783,17 @@ if __name__ == '__main__':
 
     i = 0
     retry_count = 0
-    while i < len(values):
+    while True:
+        if os.path.exists(ruta):  # We check if the file exits
+            with open(ruta) as archivo:
+                contenido = json.load(archivo)  # Load JSON content into a variable
+                if isinstance(contenido, list):  # Check if content is a list
+                    l = contenido
+                else:
+                    print("The content is not a valid list.")
+        else:
+            print("JSON archive does not exist")
+            l = []
         value = check_value_is_done(l, values)
         cfg.coarse_model_and_render["num_voxels"] = value
         cfg.coarse_model_and_render["num_voxels_base"] = value
@@ -823,17 +823,16 @@ if __name__ == '__main__':
             f.write("\nEXECUTION FAILED. We try again\n")
             if retry_count < 3:
                 retry_count += 1
+                continue
             else:
-                i += 1
-                retry_count = 0
-            continue
+                break
         results = {}
         results["time"] = time.time() - start_time
         results["memory"] = memory_after - memory_before
         results["psnr"] = psnr_value
         results["ssim"] = ssim_value
         results["lpips"] = lpips_vgg_value
-        load_results(ruta, cfg, results)
+        load_results(l, ruta, cfg, results)
 
         f.write("\nTime: {}".format(time.time() - start_time))
         f.write("\nPSNR: {}".format(psnr_value))
@@ -841,9 +840,8 @@ if __name__ == '__main__':
         f.write("\nLPIPS: {}".format(lpips_vgg_value))
         f.write("\n\n")
         print()
-        i += 1
-        retry_count = 0
         gc.collect()
+        break
 
     f.write("All executions done")
     f.close()
