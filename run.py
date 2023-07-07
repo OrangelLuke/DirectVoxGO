@@ -820,11 +820,13 @@ if __name__ == '__main__':
         except Exception as excp:
             print(excp)
             print("EXECUTION FAILED. We try again")
-            f.write("\nEXECUTION FAILED. We try again\n")
+            f.write("\nEXECUTION FAILED.")
             if retry_count < 3:
                 retry_count += 1
+                print(" We try again\n")
                 continue
             else:
+                print(" We tried 3 times. Abort\n")
                 break
         results = {}
         results["time"] = time.time() - start_time
