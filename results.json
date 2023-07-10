@@ -106,5 +106,57 @@
       "ssim": 0.976757174390873,
       "lpips": 0.0259513717982918
     }
+  },
+  {
+    "config": {
+      "coarse_render.num_voxels": 256000,
+      "coarse_render.num_voxels_base": 256000
+    },
+    "results": {
+      "time": 532.387139081955,
+      "memory": 3255668736,
+      "psnr": 34.50764895677567,
+      "ssim": 0.9755794179825549,
+      "lpips": 0.028079735664650798
+    }
+  },
+  {
+    "config": {
+      "coarse_render.num_voxels": 512000,
+      "coarse_render.num_voxels_base": 512000
+    },
+    "results": {
+      "time": 543.4987950325012,
+      "memory": 3594887168,
+      "psnr": 34.55857026576996,
+      "ssim": 0.9759550655684478,
+      "lpips": 0.02749661491252482
+    }
+  },
+  {
+    "config": {
+      "coarse_render.num_voxels": 1024000,
+      "coarse_render.num_voxels_base": 1024000
+    },
+    "results": {
+      "time": 564.6849448680878,
+      "memory": 3736018944,
+      "psnr": 34.63050256967544,
+      "ssim": 0.9759592047808806,
+      "lpips": 0.027276137312874198
+    }
+  },
+  {
+    "config": {
+      "coarse_render.num_voxels": 2048000,
+      "coarse_render.num_voxels_base": 2048000
+    },
+    "results": {
+      "time": 567.868026971817,
+      "memory": 3656732672,
+      "psnr": 34.477971851825714,
+      "ssim": 0.9753035835015571,
+      "lpips": 0.027627390464767813
+    }
   }
 ]
