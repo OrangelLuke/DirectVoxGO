@@ -730,7 +730,7 @@ def execute_everything(args, cfg, device, data_dict):
 def load_results(l, ruta, cfg, results):
     execution = {}
     execution["config"] = {}
-    execution["config"]["coarse_train.n_rand"] = cfg.coarse_train["N_rand"]
+    execution["config"]["fine_train.n_iters"] = cfg.fine_train["N_iters"]
     execution["results"] = results
 
     l.append(execution)
@@ -748,8 +748,8 @@ def measure_memory_usage():
 def check_value_is_done(l, values):
     valuesDone = []
     for val in l:
-        if "coarse_train.n_rand" in val["config"]:
-            valuesDone.append(val["config"]["coarse_train.n_rand"])
+        if "fine_train.n_iters" in val["config"]:
+            valuesDone.append(val["config"]["fine_train.n_iters"])
     for val in values:
         if val not in valuesDone:
             return val
@@ -772,8 +772,9 @@ if __name__ == '__main__':
     ruta = "results.json"
 
     #values = [1000, 5000, 10000]
-    values = [4096, 8192, 16384]
-    print("Original coarse_train.n_rand ", cfg.coarse_train["N_rand"])
+    #values = [4096, 8192, 16384]
+    values = [1000, 20000, 40000]
+    print("Original fine_train.n_iters ", cfg.fine_train["N_iters"])
 
     parent_dir = "logRecord"
 
@@ -794,8 +795,8 @@ if __name__ == '__main__':
         if value is None:
             print("All values have been used\n")
             break
-        cfg.coarse_train["N_rand"] = value
-        print("## VALOR: ", cfg.coarse_train["N_rand"], " ##")
+        cfg.fine_train["N_iters"] = value
+        print("## VALOR: ", cfg.fine_train["N_iters"], " ##")
         # load images / poses / camera settings / data split
         data_dict = load_everything(args=args, cfg=cfg)
         try:
@@ -805,7 +806,7 @@ if __name__ == '__main__':
             memory_before = measure_memory_usage()
             execute_everything(args, cfg, device, data_dict)
             memory_after = measure_memory_usage()
-            directory = "coarse_train.n_rand"+str(cfg.coarse_train["N_rand"])
+            directory = "fine_train.n_iters"+str(cfg.fine_train["N_iters"])
             path = os.path.join(parent_dir, directory)
             print("El path para el directorio es: ", path)
             os.mkdir(path)
