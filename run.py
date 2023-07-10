@@ -730,10 +730,7 @@ def execute_everything(args, cfg, device, data_dict):
 def load_results(l, ruta, cfg, results):
     execution = {}
     execution["config"] = {}
-    execution["config"]["coarse_num_voxels"] = cfg.coarse_model_and_render["num_voxels"]
-    execution["config"]["coarse_num_voxels_base"] = cfg.coarse_model_and_render["num_voxels_base"]
-    execution["config"]["fine_num_voxels"] = cfg.coarse_model_and_render["num_voxels"]
-    execution["config"]["fine_num_voxels_base"] = cfg.coarse_model_and_render["num_voxels_base"]
+    execution["config"]["coarse_train.n_rand"] = cfg.coarse_train["N_rand"]
     execution["results"] = results
 
     l.append(execution)
@@ -751,7 +748,8 @@ def measure_memory_usage():
 def check_value_is_done(l, values):
     valuesDone = []
     for val in l:
-        valuesDone.append(val["config"]["coarse_num_voxels"])
+        if "coarse_train.n_rand" in val["config"]:
+            valuesDone.append(val["config"]["coarse_train.n_rand"])
     for val in values:
         if val not in valuesDone:
             return val
@@ -773,12 +771,10 @@ if __name__ == '__main__':
 
     ruta = "results.json"
 
-    # values = [10**3, 160**3]
-    values = [100, 1024000]
-    # values = [10, 50]
-    print("num_voxels: ", cfg.fine_model_and_render["num_voxels"])
+    #values = [1000, 5000, 10000]
+    values = [4096, 8192, 16384]
+    print("Original coarse_train.n_rand ", cfg.coarse_train["N_rand"])
 
-    f = open("measurements.txt", "a")
     parent_dir = "logRecord"
 
     i = 0
@@ -798,23 +794,18 @@ if __name__ == '__main__':
         if value is None:
             print("All values have been used\n")
             break
-        cfg.coarse_model_and_render["num_voxels"] = value
-        cfg.coarse_model_and_render["num_voxels_base"] = value
-        cfg.fine_model_and_render["num_voxels"] = value
-        cfg.fine_model_and_render["num_voxels_base"] = value
-        print("## VALOR: ", cfg.coarse_model_and_render["num_voxels"], " ##")
-        f.write("## VALOR: {} ##\n".format(cfg.coarse_model_and_render["num_voxels"]))
+        cfg.coarse_train["N_rand"] = value
+        print("## VALOR: ", cfg.coarse_train["N_rand"], " ##")
         # load images / poses / camera settings / data split
         data_dict = load_everything(args=args, cfg=cfg)
         try:
             print("Trying to execute")
-            f.write("Trying to execute\n")
             gc.collect()
             start_time = time.time()
             memory_before = measure_memory_usage()
             execute_everything(args, cfg, device, data_dict)
             memory_after = measure_memory_usage()
-            directory = "num_voxels"+str(cfg.coarse_model_and_render["num_voxels"])
+            directory = "coarse_train.n_rand"+str(cfg.coarse_train["N_rand"])
             path = os.path.join(parent_dir, directory)
             print("El path para el directorio es: ", path)
             os.mkdir(path)
@@ -823,7 +814,6 @@ if __name__ == '__main__':
         except Exception as excp:
             print(excp)
             print("EXECUTION FAILED. We try again")
-            f.write("\nEXECUTION FAILED.")
             if retry_count < 3:
                 retry_count += 1
                 print(" We try again\n")
@@ -839,15 +829,8 @@ if __name__ == '__main__':
         results["lpips"] = lpips_vgg_value
         load_results(l, ruta, cfg, results)
 
-        f.write("\nTime: {}".format(time.time() - start_time))
-        f.write("\nPSNR: {}".format(psnr_value))
-        f.write("\nSSIM: {}".format(ssim_value))
-        f.write("\nLPIPS: {}".format(lpips_vgg_value))
-        f.write("\n\n")
         print()
         gc.collect()
         break
 
-    f.write("All executions done")
-    f.close()
-    print("All executions done")
+    print("Execution done")
