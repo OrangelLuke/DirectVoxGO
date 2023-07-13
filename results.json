@@ -158,5 +158,57 @@
       "ssim": 0.9753035835015571,
       "lpips": 0.027627390464767813
     }
+  },
+  {
+    "config": {
+      "fine_render.num_voxels": 64000,
+      "fine_render.num_voxels_base": 64000
+    },
+    "results": {
+      "time": 201.8986964225769,
+      "memory": 2427940864,
+      "psnr": 27.018208527565,
+      "ssim": 0.8907290714137135,
+      "lpips": 0.1414528863132
+    }
+  },
+  {
+    "config": {
+      "fine_render.num_voxels": 512000,
+      "fine_render.num_voxels_base": 512000
+    },
+    "results": {
+      "time": 386.55172085762024,
+      "memory": 3432386560,
+      "psnr": 30.834117543697356,
+      "ssim": 0.9493602832106396,
+      "lpips": 0.07162620585411787
+    }
+  },
+  {
+    "config": {
+      "fine_render.num_voxels": 4096000,
+      "fine_render.num_voxels_base": 4096000
+    },
+    "results": {
+      "time": 562.7026541233063,
+      "memory": 3539038208,
+      "psnr": 34.63700866699219,
+      "ssim": 0.9760104574970425,
+      "lpips": 0.027261049784719944
+    }
+  },
+  {
+    "config": {
+      "fine_render.num_voxels": 32768000,
+      "fine_render.num_voxels_base": 32768000
+    },
+    "results": {
+      "time": 7269.684906721115,
+      "memory": 1548173312,
+      "psnr": 35.91233676671982,
+      "ssim": 0.980458735692361,
+      "lpips": 0.019860350652597846
+    }
   }
 ]
