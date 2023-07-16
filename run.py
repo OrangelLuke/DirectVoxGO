@@ -730,8 +730,8 @@ def execute_everything(args, cfg, device, data_dict):
 def load_results(l, ruta, cfg, results):
     execution = {}
     execution["config"] = {}
-    execution["config"]["coarse_render.num_voxels"] = cfg.coarse_model_and_render["num_voxels"]
-    execution["config"]["coarse_render.num_voxels_base"] = cfg.coarse_model_and_render["num_voxels_base"]
+    execution["config"]["fine_render.num_voxels"] = cfg.fine_model_and_render["num_voxels"]
+    execution["config"]["fine_render.num_voxels_base"] = cfg.fine_model_and_render["num_voxels_base"]
     execution["results"] = results
 
     l.append(execution)
@@ -749,8 +749,8 @@ def measure_memory_usage():
 def check_value_is_done(l, values):
     valuesDone = []
     for val in l:
-        if "coarse_render.num_voxels" in val["config"]:
-            valuesDone.append(val["config"]["coarse_render.num_voxels"])
+        if "fine_render.num_voxels" in val["config"]:
+            valuesDone.append(val["config"]["fine_render.num_voxels"])
     for val in values:
         if val not in valuesDone:
             return val
@@ -780,9 +780,9 @@ if __name__ == '__main__':
     #values = [500, 20000]
     #values = [2048, 32768]
     #values = [5000, 80000]
-    #valeus = [10**3]
-    values = [4096000]
-    print("Original coarse_render.num_voxels: ", cfg.coarse_model_and_render["num_voxels"])
+    values = [10**3]
+    #values = [4096000]
+    print("Original fine_render.num_voxels: ", cfg.fine_model_and_render["num_voxels"])
 
     parent_dir = "logRecord"
 
@@ -803,8 +803,9 @@ if __name__ == '__main__':
         if value is None:
             print("All values have been used\n")
             break
-        cfg.coarse_model_and_render["num_voxels"] = value
-        print("## VALOR: ", cfg.coarse_model_and_render["num_voxels"], " ##")
+        cfg.fine_model_and_render["num_voxels"] = value
+        cfg.fine_model_and_render["num_voxels_base"] = value
+        print("## VALOR: ", cfg.fine_model_and_render["num_voxels"], " ##")
         # load images / poses / camera settings / data split
         data_dict = load_everything(args=args, cfg=cfg)
         try:
@@ -814,7 +815,7 @@ if __name__ == '__main__':
             memory_before = measure_memory_usage()
             execute_everything(args, cfg, device, data_dict)
             memory_after = measure_memory_usage()
-            directory = "coarse_render.num_voxels"+str(cfg.coarse_model_and_render["num_voxels"])
+            directory = "fine_render.num_voxels"+str(cfg.fine_model_and_render["num_voxels"])
             path = os.path.join(parent_dir, directory)
             print("El path para el directorio es: ", path)
             os.mkdir(path)
