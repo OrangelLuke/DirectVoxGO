@@ -167,4 +167,3 @@ if __name__ == "__main__":
     plot_graphs(param, time, memory, psnr, ssim, lpips, "fine_render-num_voxels")
 
 
-
